@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/filetoast.dir/src/main.c.o CMakeFiles/filetoast.dir/src/log.c.o CMakeFiles/filetoast.dir/src/supervisor.c.o CMakeFiles/filetoast.dir/src/job.c.o CMakeFiles/filetoast.dir/src/worker.c.o  -o bin/filetoast -rdynamic -lpthread -lcurl -lconfig 
