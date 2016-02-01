@@ -7,6 +7,6 @@
 
 void * worker(void *);
 char * readfile(t_job *);
-void senddata(t_job * job);
+int senddata(t_job * job);
 
 #endif //FILETOAST_WORKER_H

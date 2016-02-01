@@ -18,7 +18,7 @@ void * worker(void * arg)
     while (1) {
 
         while((job = jobfind(info->supervisor, info->threadinfo)) != NULL) {
-            info->threadinfo->status = THREAD_BUSY;
+            info->threadinfo->status = status = THREAD_BUSY;
 
             job->status = JOB_PROCESSING;
             job->content = readfile(job);
@@ -27,9 +27,14 @@ void * worker(void * arg)
              * Send data to Post endpoint
              */
             if(job->content != NULL) {
-                senddata(job);
+                if(senddata(job)) {
+                    writelog(LOG_ERROR, "Resetting Job-Status for %s (Thread: %d)", job->file, info->threadinfo->id);
+                    job->status = JOB_READY;
+                    continue;
+                } else {
+                    writelog(LOG_DEFAULT, "Finished Processing %s (Thread: %d)", job->file, info->threadinfo->id);
+                }
             }
-            writelog(LOG_DEFAULT, "Finished Processing %s", job->file);
 
             jobfinish(info->supervisor, job);
 
@@ -38,8 +43,8 @@ void * worker(void * arg)
 
         status = THREAD_IDLE;
 
-        if((info->threadinfo->status = THREAD_IDLE) != status) {
-            status = info->threadinfo->status;
+        if(info->threadinfo->status != status) {
+            info->threadinfo->status = status;
             writelog(LOG_DEFAULT, "Waiting for Jobs (Thread: %d)", info->threadinfo->id);
         }
 
@@ -57,14 +62,14 @@ char * readfile(t_job * job)
     FILE * file = fopen(job->fullpath, "r");
 
     if(file == NULL) {
-        writelog(LOG_ERROR, "fopen failed for %s -> %s in thread %d, deleting job.", job->fullpath, strerror(errno), job->thread);
+        writelog(LOG_ERROR, "Fopen failed for %s -> %s, deleting job. (Thread: %d)", job->fullpath, strerror(errno), job->thread);
         return NULL;
     }
 
     fserr = fseek(file, 0, SEEK_END);
 
     if(fserr) {
-        writelog(LOG_ERROR, "fseek failed for %s -> %s", job->fullpath, strerror(errno));
+        writelog(LOG_ERROR, "Fseek failed for %s -> %s (Thread: %d)", job->fullpath, strerror(errno), job->thread);
     }
 
     offset = ftell(file);
@@ -79,8 +84,9 @@ char * readfile(t_job * job)
     return filebuf;
 }
 
-void senddata(t_job * job)
+int senddata(t_job * job)
 {
+    int status = 0;
     CURL * curl;
     CURLcode res;
 
@@ -103,7 +109,8 @@ void senddata(t_job * job)
         res = curl_easy_perform(curl);
 
         if(res != CURLE_OK) {
-            writelog(LOG_ERROR, "Curl Failed -> %s", curl_easy_strerror(res));
+            status = 1;
+            writelog(LOG_ERROR, "Curl Failed -> %s (Thread: %d)", curl_easy_strerror(res), job->thread);
         }
 
         curl_easy_cleanup(curl);
@@ -112,4 +119,6 @@ void senddata(t_job * job)
     }
 
     fclose(null);
+
+    return status;
 }
