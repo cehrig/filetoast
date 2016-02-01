@@ -19,6 +19,7 @@ void * worker(void * arg)
 
         while((job = jobfind(info->supervisor, info->threadinfo)) != NULL) {
             info->threadinfo->status = status = THREAD_BUSY;
+            writelog(LOG_DEBUG, "Start processing %s (Thread: %d)", job->file, info->threadinfo->id);
 
             job->status = JOB_PROCESSING;
             job->content = readfile(job);
@@ -105,7 +106,8 @@ int senddata(t_job * job)
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
-
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
         res = curl_easy_perform(curl);
 
         if(res != CURLE_OK) {
