@@ -5,6 +5,9 @@ This program pushes contents of files - from configured directories and patterns
 -
 See cfg/ for a sample /etc/filetoast.conf
 
+**Init Script**
+See init/ for a sample init script. The binary has to be place in /usr/bin/filetoast
+
 **Binary**
 -
 A linux compiled binary can be found in bin.
