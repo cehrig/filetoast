@@ -146,9 +146,9 @@ void jobdelete(t_supervisor * supervisor, t_job * job)
     }
 
     if(unlink(job->fullpath)) {
-        writelog(LOG_CRITICAL, "Can not unlink file %s -> %s (Thread: %d)", job->fullpath, strerror(errno), job->thread);
+        writelog(LOG_ERROR, "Can not unlink file %s -> %s (Thread: %d)", job->fullpath, strerror(errno), job->thread);
     }
-    writelog(LOG_DEFAULT, "Unlinked file %s -> %s (Thread: %d)", job->fullpath, strerror(errno), job->thread);
+    writelog(LOG_DEFAULT, "Open Jobs %d - Unlinked file %s -> %s (Thread: %d)", jobcount(supervisor), job->fullpath, strerror(errno), job->thread);
 
     free(curr->file);
     free(curr->fullpath);
@@ -166,6 +166,19 @@ void jobprint(t_supervisor * supervisor)
         writelog(LOG_DEFAULT, "-> %s", job->file);
         job = job->next;
     }
+}
+
+int jobcount(t_supervisor * supervisor)
+{
+    int c = 0;
+    t_job * job = supervisor->jobs->job;
+
+    while(job != NULL) {
+        c++;
+        job = job->next;
+    }
+
+    return c;
 }
 
 char * ffullpath(t_job * job)

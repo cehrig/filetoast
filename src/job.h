@@ -38,6 +38,7 @@ void jobfinish(t_supervisor * supervisor, t_job * job);
 void jobcleanup(t_supervisor * supervisor);
 void jobdelete(t_supervisor *, t_job *);
 void jobprint(t_supervisor *);
+int jobcount(t_supervisor *);
 
 char * ffullpath(t_job *);
 
