@@ -16,6 +16,7 @@ typedef struct config
 } t_config;
 
 void prepconfig();
+void init_ssl_locks();
 
 extern t_config configuration;
 

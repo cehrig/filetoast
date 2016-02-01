@@ -7,6 +7,7 @@ add_compile_options(-Wall -g)
 
 add_executable(filetoast ${SOURCE_FILES})
 target_link_libraries(filetoast pthread)
+target_link_libraries(filetoast crypto)
 target_link_libraries(filetoast curl)
 target_link_libraries(filetoast config)
 set_target_properties(filetoast PROPERTIES RUNTIME_OUTPUT_DIRECTORY /usr/bin)
