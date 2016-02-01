@@ -146,9 +146,9 @@ void jobdelete(t_supervisor * supervisor, t_job * job)
     }
 
     if(unlink(job->fullpath)) {
-        writelog(LOG_CRITICAL, "Can not unlink file %s in Thread %d -> %s", job->fullpath, job->thread, strerror(errno));
+        writelog(LOG_CRITICAL, "Can not unlink file %s -> %s (Thread: %d)", job->fullpath, strerror(errno), job->thread);
     }
-    writelog(LOG_DEFAULT, "Unlinked file %s in Thread %d -> %s", job->fullpath, job->thread, strerror(errno));
+    writelog(LOG_DEFAULT, "Unlinked file %s -> %s (Thread: %d)", job->fullpath, strerror(errno), job->thread);
 
     free(curr->file);
     free(curr->fullpath);
