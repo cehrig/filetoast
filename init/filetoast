@@ -1,0 +1,17 @@
+#!/sbin/runscript
+
+depend() {
+        need net
+}
+
+start() {
+        ebegin "Starting filetoast daemon"
+        start-stop-daemon --start --exec /usr/bin/filetoast daemon --make-pidfile --pidfile /run/filetoast.pid --background
+        eend $?
+}
+
+stop() {
+        ebegin "Stopping filetoast daemon"
+        start-stop-daemon --stop --exec /usr/bin/filetoast
+        eend $?
+}
