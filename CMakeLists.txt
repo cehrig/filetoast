@@ -1,7 +1,21 @@
 cmake_minimum_required(VERSION 3.3)
 project(filetoast)
 
-set(SOURCE_FILES src/main.c src/main.h src/log.c src/log.c src/log.h src/supervisor.c src/supervisor.h src/job.c src/job.h src/worker.c src/worker.h)
+set(FILETOAST_REQUIRED_LIBS config curl)
+
+foreach(REQUIRED_LIB ${FILETOAST_REQUIRED_LIBS})
+    SET(LIBTEMP_FOUND LIBTEMP_FOUND-NOTFOUND)
+    find_library(LIBTEMP_FOUND ${REQUIRED_LIB})
+
+    if(LIBTEMP_FOUND)
+        MESSAGE("found ${REQUIRED_LIB}")
+    else()
+        MESSAGE(FATAL_ERROR "could not find lib${REQUIRED_LIB}")
+    endif()
+endforeach(REQUIRED_LIB)
+
+
+set(SOURCE_FILES src/main.c src/log.c src/supervisor.c src/job.c src/worker.c)
 
 add_compile_options(-Wall -g)
 
