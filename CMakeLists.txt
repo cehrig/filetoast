@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 project(filetoast)
 
-set(FILETOAST_REQUIRED_LIBS config curl)
+set(FILETOAST_REQUIRED_LIBS pthread crypto config curl)
 
 foreach(REQUIRED_LIB ${FILETOAST_REQUIRED_LIBS})
     SET(LIBTEMP_FOUND LIBTEMP_FOUND-NOTFOUND)
