@@ -14,8 +14,7 @@ foreach(REQUIRED_LIB ${FILETOAST_REQUIRED_LIBS})
     endif()
 endforeach(REQUIRED_LIB)
 
-
-set(SOURCE_FILES src/main.c src/log.c src/supervisor.c src/job.c src/worker.c)
+set(SOURCE_FILES src/main.c src/log.c src/supervisor.c src/job.c src/worker.c src/ssl.c)
 
 add_compile_options(-Wall -g)
 

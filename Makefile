@@ -204,6 +204,33 @@ src/main.c.s:
 	$(MAKE) -f CMakeFiles/filetoast.dir/build.make CMakeFiles/filetoast.dir/src/main.c.s
 .PHONY : src/main.c.s
 
+src/ssl.o: src/ssl.c.o
+
+.PHONY : src/ssl.o
+
+# target to build an object file
+src/ssl.c.o:
+	$(MAKE) -f CMakeFiles/filetoast.dir/build.make CMakeFiles/filetoast.dir/src/ssl.c.o
+.PHONY : src/ssl.c.o
+
+src/ssl.i: src/ssl.c.i
+
+.PHONY : src/ssl.i
+
+# target to preprocess a source file
+src/ssl.c.i:
+	$(MAKE) -f CMakeFiles/filetoast.dir/build.make CMakeFiles/filetoast.dir/src/ssl.c.i
+.PHONY : src/ssl.c.i
+
+src/ssl.s: src/ssl.c.s
+
+.PHONY : src/ssl.s
+
+# target to generate assembly for a file
+src/ssl.c.s:
+	$(MAKE) -f CMakeFiles/filetoast.dir/build.make CMakeFiles/filetoast.dir/src/ssl.c.s
+.PHONY : src/ssl.c.s
+
 src/supervisor.o: src/supervisor.c.o
 
 .PHONY : src/supervisor.o
@@ -276,6 +303,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/ssl.o"
+	@echo "... src/ssl.i"
+	@echo "... src/ssl.s"
 	@echo "... src/supervisor.o"
 	@echo "... src/supervisor.i"
 	@echo "... src/supervisor.s"
