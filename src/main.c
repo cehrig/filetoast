@@ -7,9 +7,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <time.h>
 #include <unistd.h>
-#include <pthread.h>
+#include "reverse.h"
 #include "supervisor.h"
 #include "job.h"
 #include "log.h"
@@ -25,9 +24,6 @@ static void signal_handle(int x) {
 
 int main(int argc, char ** argv)
 {
-    signal(SIGTERM | SIGPIPE | SIGSEGV | SIGKILL | SIGQUIT | SIGINT | SIGHUP, signal_handle);
-    init_ssl_locks();
-
     /**
      * If running with init Script pipe stdout to logfile
      */
@@ -38,106 +34,130 @@ int main(int argc, char ** argv)
     }
     openlog(daemon);
 
+    signal(SIGTERM | SIGPIPE | SIGSEGV | SIGKILL | SIGQUIT | SIGINT | SIGHUP, signal_handle);
+    init_ssl_locks();
+
+    /**
+     * Reading configuration file
+     */
     prepconfig();
 
-    /**
-     * Allocating memory for monitored dirs
-     */
-    char * dirs = malloc((strlen(configuration.directories)+1) * sizeof(char));
-    bzero(dirs, strlen(configuration.directories)+1);
-    memcpy(dirs, configuration.directories, strlen(configuration.directories));
+    if(configuration.enabled_filetoast) {
 
-    /**
-     * Allocating memory for monitored patterns
-     */
-    char * patts = malloc((strlen(configuration.patterns)+1) * sizeof(char));
-    bzero(patts, strlen(configuration.patterns)+1);
-    memcpy(patts, configuration.patterns, strlen(configuration.patterns));
+        /**
+         * Allocating memory for monitored dirs
+         */
+        char * dirs = malloc((strlen(configuration.directories)+1) * sizeof(char));
+        bzero(dirs, strlen(configuration.directories)+1);
+        memcpy(dirs, configuration.directories, strlen(configuration.directories));
 
-    /**
-     * Defining delimiter for monitored directories
-     */
-    char delimiter[] = ";";
+        /**
+         * Allocating memory for monitored patterns
+         */
+        char * patts = malloc((strlen(configuration.patterns)+1) * sizeof(char));
+        bzero(patts, strlen(configuration.patterns)+1);
+        memcpy(patts, configuration.patterns, strlen(configuration.patterns));
 
-    /**
-     * Creating Pointer Vector for all Directories
-     */
-    char ** monitors = NULL;
+        /**
+         * Defining delimiter for monitored directories
+         */
+        char delimiter[] = ";";
 
-    /**
-     * Splitting Monitored directories
-     */
-    char * tok;
-    tok = strtok(dirs, delimiter);
+        /**
+         * Creating Pointer Vector for all Directories
+         */
+        char ** monitors = NULL;
 
-    short x = 0; int s = 0;
-    while(tok != NULL) {
-        char * cur = tok;
-        if((s = mkdir(cur, 0755))) {
-            if(errno == EEXIST) {
-                writelog(LOG_DEFAULT, "Directory found %s", tok);
-                monitors = realloc(monitors, ++x * sizeof(char *));
-                *(monitors+(x-1)) = tok;
-            } else {
-                writelog(LOG_ERROR, "Directory %s could not be opened -> %s", tok, strerror(errno));
+        /**
+         * Splitting Monitored directories
+         */
+        char * tok;
+        tok = strtok(dirs, delimiter);
+
+        short x = 0; int s = 0;
+        while(tok != NULL) {
+            char * cur = tok;
+            if((s = mkdir(cur, 0755))) {
+                if(errno == EEXIST) {
+                    writelog(LOG_DEFAULT, "Directory found %s", tok);
+                    monitors = realloc(monitors, ++x * sizeof(char *));
+                    *(monitors+(x-1)) = tok;
+                } else {
+                    writelog(LOG_ERROR, "Directory %s could not be opened -> %s", tok, strerror(errno));
+                }
+
             }
 
+            tok = strtok(NULL, delimiter);
         }
 
-        tok = strtok(NULL, delimiter);
+        if(!x) {
+            printf("No directory found");
+            return 1;
+        }
+
+        /**
+         * Creating Pointer Vector for all file patterns
+         */
+        char ** patterns = NULL;
+
+        /**
+         * Splitting monitored file patterns
+         */
+        char * tokp;
+        tokp = strtok(patts, delimiter);
+
+        short y = 0;
+        while(tokp != NULL) {
+            patterns = realloc(patterns, ++y * sizeof(char *));
+            *(patterns+(y-1)) = tokp;
+
+            tokp = strtok(NULL, delimiter);
+        }
+
+        /**
+        * Setting up filetoast threads
+        */
+        t_supervisor * supervisor = tsetup(x, y, monitors, patterns);
+
+        /**
+         * Setting up filetoast monitor
+         */
+        filetoast(supervisor);
     }
 
-    if(!x) {
-        printf("No directory found");
-        return 1;
+    if(configuration.enabled_astofile) {
+        /**
+         * Setting up reverse data-flow (POST to File)
+         */
+        reverse();
     }
 
     /**
-     * Creating Pointer Vector for all file patterns
+     * Joining monitoring threads to prevent stopping program execution
      */
-    char ** patterns = NULL;
-
-    /**
-     * Splitting monitored file patterns
-     */
-    char * tokp;
-    tokp = strtok(patts, delimiter);
-
-    short y = 0;
-    while(tokp != NULL) {
-        patterns = realloc(patterns, ++y * sizeof(char *));
-        *(patterns+(y-1)) = tokp;
-
-        tokp = strtok(NULL, delimiter);
+    if(configuration.enabled_filetoast) {
+        pthread_join(reverse_thread, NULL);
     }
 
-    /**
-     * Setting up threads
-     */
-    t_supervisor * supervisor = tsetup(x, y, monitors, patterns);
-
-    /**
-     * Check for new files and assign them round-robin to a thread
-     */
-    while(1) {
-        jobcleanup(supervisor);
-        globfs(supervisor);
-        jobassign(supervisor);
-
-        sleep(1);
+    if(configuration.enabled_astofile) {
+        pthread_join(filetoast_thread, NULL);
     }
 
-    tjoin(supervisor);
+    writelog(LOG_ERROR, "Filetoast quits");
 
     return 0;
 }
 
 void prepconfig()
 {
+    configuration.enabled_filetoast = 0;
+    configuration.enabled_astofile = 0;
+
     /**
      * Read configuration file
      */
-    config_t cfg, *cf;
+    config_t cfg, * cf;
 
     cf = &cfg;
     config_init(cf);
@@ -147,28 +167,55 @@ void prepconfig()
         exit(255);
     }
 
-    if (!config_lookup_string(cf, "posturl", &configuration.posturl)) {
-        writelog(LOG_CRITICAL, "Could not find 'posturl' in configuration file.");
-        exit(255);
+    if (config_lookup(cf, "filetoast")) {
+        if (!config_lookup_string(cf, "filetoast.posturl", &configuration.posturl)) {
+            writelog(LOG_CRITICAL, "Could not find 'posturl' in configuration file.");
+            exit(255);
+        }
+
+        if (!config_lookup_string(cf, "filetoast.poststring", &configuration.poststring)) {
+            writelog(LOG_CRITICAL, "Could not find 'poststring' in configuration file.");
+            exit(255);
+        }
+
+        if (!config_lookup_string(cf, "filetoast.directories", &configuration.directories)) {
+            writelog(LOG_CRITICAL, "Could not find 'directories' in configuration file.");
+            exit(255);
+        }
+
+        if (!config_lookup_string(cf, "filetoast.patterns", &configuration.patterns)) {
+            writelog(LOG_CRITICAL, "Could not find 'patterns' in configuration file.");
+            exit(255);
+        }
+
+        if (!config_lookup_int(cf, "filetoast.maxthreads", &configuration.maxthreads)) {
+            writelog(LOG_CRITICAL, "Could not find 'maxthreads' in configuration file.");
+            exit(255);
+        }
+
+        configuration.enabled_filetoast = 1;
+    } else {
+        writelog(LOG_DEBUG, "Skipping Filetoast due to missing configuration");
     }
 
-    if (!config_lookup_string(cf, "poststring", &configuration.poststring)) {
-        writelog(LOG_CRITICAL, "Could not find 'poststring' in configuration file.");
-        exit(255);
+    if (config_lookup(cf, "astofile")) {
+        if (!config_lookup_string(cf, "astofile.bind", &configuration.bind)) {
+            writelog(LOG_CRITICAL, "Could not find 'bind' in configuration file.");
+            exit(255);
+        }
+
+        if (!config_lookup_int(cf, "astofile.port", &configuration.port)) {
+            writelog(LOG_CRITICAL, "Could not find 'bind' in configuration file.");
+            exit(255);
+        }
+
+        if (!config_lookup_int(cf, "astofile.maxthreads", &configuration.rmaxthreads)) {
+            writelog(LOG_CRITICAL, "Could not find 'maxthreads' in (reverse) configuration file.");
+            exit(255);
+        }
+        configuration.enabled_astofile = 1;
+    } else {
+        writelog(LOG_DEBUG, "Skipping Reverse Filetoast due to missing configuration");
     }
 
-    if (!config_lookup_string(cf, "directories", &configuration.directories)) {
-        writelog(LOG_CRITICAL, "Could not find 'directories' in configuration file.");
-        exit(255);
-    }
-
-    if (!config_lookup_string(cf, "patterns", &configuration.patterns)) {
-        writelog(LOG_CRITICAL, "Could not find 'patterns' in configuration file.");
-        exit(255);
-    }
-
-    if (!config_lookup_int(cf, "maxthreads", &configuration.maxthreads)) {
-        writelog(LOG_CRITICAL, "Could not find 'maxthreads' in configuration file.");
-        exit(255);
-    }
 }

@@ -7,11 +7,16 @@
 
 typedef struct config
 {
+    int enabled_filetoast;
     const char * posturl;
     const char * poststring;
     const char * directories;
     const char * patterns;
     int maxthreads;
+    int enabled_astofile;
+    const char * bind;
+    int port;
+    int rmaxthreads;
 
 } t_config;
 

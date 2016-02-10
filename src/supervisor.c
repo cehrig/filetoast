@@ -8,6 +8,31 @@
 #include "log.h"
 #include "worker.h"
 
+pthread_t filetoast_thread;
+
+void filetoast(t_supervisor * supervisor)
+{
+    pthread_create(&filetoast_thread, NULL, filetoast_monitor, (void *) supervisor);
+}
+
+void * filetoast_monitor(void * args)
+{
+    t_supervisor * supervisor = (t_supervisor *) args;
+
+    /**
+     * Check for new files and assign them round-robin to a thread
+     */
+    while(1) {
+        jobcleanup(supervisor);
+        globfs(supervisor);
+        jobassign(supervisor);
+
+        sleep(1);
+    }
+
+    return NULL;
+}
+
 t_supervisor * tsetup(short lend, short lenp, char ** monitors, char ** patterns)
 {
     /**

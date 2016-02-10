@@ -40,6 +40,10 @@ typedef struct threadarg
     t_threadinfo * threadinfo;
 } t_threadarg;
 
+extern pthread_t filetoast_thread;
+
+void filetoast(t_supervisor *);
+void * filetoast_monitor(void *);
 t_supervisor * tsetup(short, short, char **, char **);
 
 void globfs(t_supervisor *);
