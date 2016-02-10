@@ -204,6 +204,33 @@ src/main.c.s:
 	$(MAKE) -f CMakeFiles/filetoast.dir/build.make CMakeFiles/filetoast.dir/src/main.c.s
 .PHONY : src/main.c.s
 
+src/reverse.o: src/reverse.c.o
+
+.PHONY : src/reverse.o
+
+# target to build an object file
+src/reverse.c.o:
+	$(MAKE) -f CMakeFiles/filetoast.dir/build.make CMakeFiles/filetoast.dir/src/reverse.c.o
+.PHONY : src/reverse.c.o
+
+src/reverse.i: src/reverse.c.i
+
+.PHONY : src/reverse.i
+
+# target to preprocess a source file
+src/reverse.c.i:
+	$(MAKE) -f CMakeFiles/filetoast.dir/build.make CMakeFiles/filetoast.dir/src/reverse.c.i
+.PHONY : src/reverse.c.i
+
+src/reverse.s: src/reverse.c.s
+
+.PHONY : src/reverse.s
+
+# target to generate assembly for a file
+src/reverse.c.s:
+	$(MAKE) -f CMakeFiles/filetoast.dir/build.make CMakeFiles/filetoast.dir/src/reverse.c.s
+.PHONY : src/reverse.c.s
+
 src/ssl.o: src/ssl.c.o
 
 .PHONY : src/ssl.o
@@ -303,6 +330,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/reverse.o"
+	@echo "... src/reverse.i"
+	@echo "... src/reverse.s"
 	@echo "... src/ssl.o"
 	@echo "... src/ssl.i"
 	@echo "... src/ssl.s"
