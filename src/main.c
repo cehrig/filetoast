@@ -136,11 +136,11 @@ int main(int argc, char ** argv)
     /**
      * Joining monitoring threads to prevent stopping program execution
      */
-    if(configuration.enabled_filetoast) {
+    if(configuration.enabled_astofile) {
         pthread_join(reverse_thread, NULL);
     }
 
-    if(configuration.enabled_astofile) {
+    if(configuration.enabled_filetoast) {
         pthread_join(filetoast_thread, NULL);
     }
 
