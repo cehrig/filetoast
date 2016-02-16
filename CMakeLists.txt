@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 project(filetoast)
 
-set(FILETOAST_REQUIRED_LIBS pthread crypto config curl)
+set(FILETOAST_REQUIRED_LIBS pthread crypto config curl m)
 
 foreach(REQUIRED_LIB ${FILETOAST_REQUIRED_LIBS})
     SET(LIBTEMP_FOUND LIBTEMP_FOUND-NOTFOUND)
@@ -23,5 +23,6 @@ target_link_libraries(filetoast pthread)
 target_link_libraries(filetoast crypto)
 target_link_libraries(filetoast curl)
 target_link_libraries(filetoast config)
+target_link_libraries(filetoast m)
 set_target_properties(filetoast PROPERTIES RUNTIME_OUTPUT_DIRECTORY /usr/bin)
 #set_target_properties(filetoast PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
