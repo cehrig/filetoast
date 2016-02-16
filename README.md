@@ -1,5 +1,5 @@
 # filetoast
-This program pushes contents of files - from configured directories and patterns - to HTTP using POST
+This program pushes contents of files - from configured directories and patterns - to HTTP using POST and vice versa.
 
 **Configuration**
 -
