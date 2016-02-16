@@ -229,8 +229,11 @@ char * stripoh(char * input)
 
 void closefd(int clientfd, char * input, int success)
 {
+    char send[1024];
+    sprintf(send, "HTTP/1.1 200 OK\nContent-Type: application/json; charset=utf-8\nAccess-Control-Allow-Origin: *\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\nContent-Length: 9\n\nokokok!!!");
+
     if(success) {
-        write(clientfd, "okokok!!!", 9);
+        write(clientfd, send, strlen(send));
     }
 
     if(input != NULL) {
