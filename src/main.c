@@ -200,12 +200,12 @@ void prepconfig()
 
     if (config_lookup(cf, "astofile")) {
         if (!config_lookup_string(cf, "astofile.bind", &configuration.bind)) {
-            writelog(LOG_CRITICAL, "Could not find 'bind' in configuration file.");
+            writelog(LOG_CRITICAL, "Could not find 'bind' in (reverse) configuration file.");
             exit(255);
         }
 
         if (!config_lookup_int(cf, "astofile.port", &configuration.port)) {
-            writelog(LOG_CRITICAL, "Could not find 'bind' in configuration file.");
+            writelog(LOG_CRITICAL, "Could not find 'port' in (reverse) configuration file.");
             exit(255);
         }
 
@@ -213,6 +213,34 @@ void prepconfig()
             writelog(LOG_CRITICAL, "Could not find 'maxthreads' in (reverse) configuration file.");
             exit(255);
         }
+
+        if (!config_lookup_string(cf, "astofile.directory", &configuration.directory)) {
+            writelog(LOG_CRITICAL, "Could not find 'directory' in (reverse) configuration file.");
+            exit(255);
+        }
+
+        if (!config_lookup_string(cf, "astofile.postfix", &configuration.postfix)) {
+            writelog(LOG_CRITICAL, "Could not find 'postfix' in (reverse) configuration file.");
+            exit(255);
+        }
+
+        int s;
+        if((s = mkdir(configuration.directory, 0755))) {
+            if(errno != EEXIST) {
+                writelog(LOG_CRITICAL, "Directory %s could not be opened -> %s", configuration.directory, strerror(errno));
+                exit(255);
+            }
+        }
+
+        if(*(configuration.directory+strlen(configuration.directory)-1) != '/') {
+            char * fdirectory = malloc((strlen(configuration.directory) + 2) * sizeof(char));
+            bzero(fdirectory, strlen(configuration.directory) + 2);
+            memcpy(fdirectory, configuration.directory, strlen(configuration.directory));
+            fdirectory[strlen(configuration.directory)] = '/';
+
+            configuration.directory = fdirectory;
+        }
+
         configuration.enabled_astofile = 1;
     } else {
         writelog(LOG_DEBUG, "Skipping Reverse Filetoast due to missing configuration");

@@ -17,6 +17,8 @@ typedef struct config
     const char * bind;
     int port;
     int rmaxthreads;
+    const char * directory;
+    const char * postfix;
 
 } t_config;
 
