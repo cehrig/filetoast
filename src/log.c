@@ -70,6 +70,13 @@ void writelog(LOG_LEVEL level, const char * msg, ...)
                     break;
                 case 'f':
                     printf("%f", va_arg (ap, double));
+                    break;
+                case 'l':
+                    printf("%ld", va_arg (ap, long));
+                    break;
+                case 'p':
+                    printf("%p", va_arg (ap, long));
+                    break;
             }
         }
         msg++;
