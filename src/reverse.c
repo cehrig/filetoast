@@ -13,15 +13,23 @@
 #include "reverse.h"
 
 pthread_t reverse_thread;
+pthread_mutex_t lock;
 
 void reverse()
 {
+    pthread_mutex_init(&lock, NULL);
     pthread_create(&reverse_thread, NULL, reverse_monitor, (void *) NULL);
 }
 
 void * reverse_monitor(void * args)
 {
     int sockfd = sock_prepare(configuration.bind, configuration.port);
+
+    if(listen(sockfd, 100) < 0) {
+        writelog(LOG_CRITICAL, "Can not listen on socket");
+        exit(255);
+    }
+
     int clientfd;
 
     pthread_t clthread[configuration.rmaxthreads];
@@ -32,17 +40,20 @@ void * reverse_monitor(void * args)
     int x = 0, y = 0;
     while(1)
     {
-        clientfd = sock_listen(sockfd);
+        clientfd = sock_accept(sockfd);
+
         pclientfd[x] = clientfd;
 
         pthread_create(&clthread[x], NULL, rworker, (void *) &clientfd);
 
         if(++x == configuration.rmaxthreads) {
+            writelog(LOG_DEBUG, "start joining");
             for(y = 0; y < configuration.rmaxthreads; y++) {
+                close(pclientfd[y]);
                 pclientfd[y] = 0;
                 pthread_join(clthread[y], NULL);
             }
-
+            writelog(LOG_DEBUG, "finished joining");
             x = y = 0;
         }
     }
@@ -77,18 +88,15 @@ int sock_prepare(const char * ip, int port)
     return sockfd;
 }
 
-int sock_listen(int sockfd)
+int sock_accept(int sockfd)
 {
     int clientsocklen;
     struct sockaddr_in clientaddr_in;
     clientsocklen = sizeof(struct sockaddr_in);
 
-    if(listen(sockfd, 100) < 0) {
-        writelog(LOG_CRITICAL, "Can not listen on socket");
-        exit(255);
-    }
-
+    pthread_mutex_lock(&lock);
     int clientfd = accept(sockfd, (struct sockaddr *) &clientaddr_in, (socklen_t *) &clientsocklen);
+    pthread_mutex_unlock(&lock);
 
     return clientfd;
 }
@@ -96,7 +104,7 @@ int sock_listen(int sockfd)
 void * rworker(void * args)
 {
     int clientfd = *((int *) args);
-
+    printf("starting \tthread: %ld \tclientfd: %d\n", pthread_self(), clientfd);
     char * input = NULL;
     char * cinput = NULL;
 
@@ -128,6 +136,7 @@ void * rworker(void * args)
      */
     closefd(clientfd, input, 1);
 
+    printf("finished \tthread: %ld \tclientfd: %d\n", pthread_self(), clientfd);
     return NULL;
 }
 
@@ -197,22 +206,26 @@ char * nanotime()
 
 char ** readfd(int clientfd, char ** input)
 {
-    int bufferlen = 10;
-    int sumb = 0, readb = 0, run = 0;
+    int bufferlen = 10, run = 0;
+    ssize_t sumb = 0, readb = 0;
     char buffer[bufferlen];
 
-    do {
-        readb = read(clientfd, buffer, bufferlen);
+    while((readb = read(clientfd, buffer, bufferlen)) > 0)
+    {
+        printf("read: %d \tthread: %ld \tclientfd: %d\n", readb, pthread_self(), clientfd);
+
         sumb += readb;
 
         *input = (char *) realloc(*input, ++run * bufferlen * sizeof(char));
         memcpy((*input)+((run-1)*bufferlen), buffer, readb);
 
-    } while(readb > 0 && readb == bufferlen);
+        if(readb < bufferlen) {
+            break;
+        }
+    };
 
     *input = (char *) realloc(*input, sumb * sizeof(char) +1);
     memset((*input) + sumb, 0, 1);
-
     return input;
 }
 

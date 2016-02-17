@@ -10,7 +10,7 @@ extern pthread_t reverse_thread;
 void reverse();
 void * reverse_monitor(void *);
 int sock_prepare(const char *, int);
-int sock_listen(int);
+int sock_accept(int);
 
 void * rworker(void *);
 char ** readfd(int, char **);
