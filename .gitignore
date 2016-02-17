@@ -2,3 +2,16 @@
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
+/autom4te.cache
+/autoscan.log
+/autoscan-*.log
+/aclocal.m4
+/compile
+/config.h.in
+/configure
+/configure.scan
+/depcomp
+/install-sh
+/missing
+/stamp-h1
+Makefile.in
