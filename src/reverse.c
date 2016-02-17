@@ -25,11 +25,6 @@ void * reverse_monitor(void * args)
 {
     int sockfd = sock_prepare(configuration.bind, configuration.port);
 
-    if(listen(sockfd, 100) < 0) {
-        writelog(LOG_CRITICAL, "Can not listen on socket");
-        exit(255);
-    }
-
     int clientfd;
 
     pthread_t clthread[configuration.rmaxthreads];
@@ -41,19 +36,15 @@ void * reverse_monitor(void * args)
     while(1)
     {
         clientfd = sock_accept(sockfd);
-
         pclientfd[x] = clientfd;
 
         pthread_create(&clthread[x], NULL, rworker, (void *) &clientfd);
 
         if(++x == configuration.rmaxthreads) {
-            writelog(LOG_DEBUG, "start joining");
             for(y = 0; y < configuration.rmaxthreads; y++) {
-                close(pclientfd[y]);
                 pclientfd[y] = 0;
                 pthread_join(clthread[y], NULL);
             }
-            writelog(LOG_DEBUG, "finished joining");
             x = y = 0;
         }
     }
@@ -85,6 +76,11 @@ int sock_prepare(const char * ip, int port)
         exit(255);
     }
 
+    if(listen(sockfd, 100) < 0) {
+        writelog(LOG_CRITICAL, "Can not listen on socket");
+        exit(255);
+    }
+
     return sockfd;
 }
 
@@ -94,9 +90,7 @@ int sock_accept(int sockfd)
     struct sockaddr_in clientaddr_in;
     clientsocklen = sizeof(struct sockaddr_in);
 
-    pthread_mutex_lock(&lock);
     int clientfd = accept(sockfd, (struct sockaddr *) &clientaddr_in, (socklen_t *) &clientsocklen);
-    pthread_mutex_unlock(&lock);
 
     return clientfd;
 }
@@ -104,7 +98,6 @@ int sock_accept(int sockfd)
 void * rworker(void * args)
 {
     int clientfd = *((int *) args);
-    printf("starting \tthread: %ld \tclientfd: %d\n", pthread_self(), clientfd);
     char * input = NULL;
     char * cinput = NULL;
 
@@ -136,7 +129,6 @@ void * rworker(void * args)
      */
     closefd(clientfd, input, 1);
 
-    printf("finished \tthread: %ld \tclientfd: %d\n", pthread_self(), clientfd);
     return NULL;
 }
 
@@ -212,7 +204,6 @@ char ** readfd(int clientfd, char ** input)
 
     while((readb = read(clientfd, buffer, bufferlen)) > 0)
     {
-        printf("read: %d \tthread: %ld \tclientfd: %d\n", readb, pthread_self(), clientfd);
 
         sumb += readb;
 
@@ -226,6 +217,7 @@ char ** readfd(int clientfd, char ** input)
 
     *input = (char *) realloc(*input, sumb * sizeof(char) +1);
     memset((*input) + sumb, 0, 1);
+
     return input;
 }
 
