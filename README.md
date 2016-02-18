@@ -9,11 +9,9 @@ See cfg/ for a sample /etc/filetoast.conf
 -
 See init/ for a sample init script. The binary has to be place in /usr/bin/filetoast
 
-**Binary**
+**Installation**
 -
-A linux compiled binary can be found in bin.
-
-bin/filetoast: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32, not stripped
+autogen.sh is provided to build through autotools. The steps in order: autoreconf, build tree, configure, make, make install to /usr/bin/filetoast
 
 **Dependencies**
 -
