@@ -119,6 +119,18 @@ void * rworker(void * args)
         return NULL;
     }
 
+    /**
+     * allocating local storage for decoded content
+     */
+    char decoded [strlen(cinput) + 1];
+
+    if(configuration.decode) {
+        bzero(decoded, strlen(cinput) + 1);
+        urldecode(cinput, decoded);
+
+        cinput = decoded;
+    }
+
     if(writefile(cinput)) {
         closefd(clientfd, input, 0);
         return NULL;
@@ -138,7 +150,6 @@ int writefile(char * input)
 
     FILE * fp;
     fp = fopen(fullpath, "w+");
-
     fputs(input, fp);
 
     fclose(fp);
@@ -191,7 +202,7 @@ char * nanotime()
     sec = tp.tv_sec;
     nsec = tp.tv_nsec;
 
-    sprintf(out, "%ld%ld", sec, nsec);
+    sprintf(out, "%ld%09ld", sec, nsec);
 
     return out;
 }
@@ -230,6 +241,33 @@ char * stripoh(char * input)
     }
 
     return NULL;
+}
+
+int ishex(int x)
+{
+    return	(x >= '0' && x <= '9')	||
+              (x >= 'a' && x <= 'f')	||
+              (x >= 'A' && x <= 'F');
+}
+
+int urldecode(const char *s, char *dec)
+{
+    char *o;
+    const char *end = s + strlen(s);
+    int c;
+
+    for (o = dec; s <= end; o++) {
+        c = *s++;
+        if (c == '+') c = ' ';
+        else if (c == '%' && (	!ishex(*s++)	||
+                                  !ishex(*s++)	||
+                                  !sscanf(s - 2, "%2x", &c)))
+            return -1;
+
+        if (dec) *o = c;
+    }
+
+    return o - dec;
 }
 
 void closefd(int clientfd, char * input, int success)

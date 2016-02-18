@@ -224,6 +224,11 @@ void prepconfig()
             exit(255);
         }
 
+        if (!config_lookup_int(cf, "astofile.decode", &configuration.decode)) {
+            writelog(LOG_CRITICAL, "Could not find 'decode' in (reverse) configuration file.");
+            exit(255);
+        }
+
         int s;
         if((s = mkdir(configuration.directory, 0755))) {
             if(errno != EEXIST) {

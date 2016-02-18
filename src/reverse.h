@@ -18,6 +18,8 @@ char * createpath();
 int writefile(char *);
 char * getfullpath();
 char * nanotime();
+int ishex(int);
+int urldecode(const char *, char *);
 char * stripoh(char *);
 void closefd(int, char *, int);
 

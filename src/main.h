@@ -19,6 +19,7 @@ typedef struct config
     int rmaxthreads;
     const char * directory;
     const char * postfix;
+    int decode;
 
 } t_config;
 
