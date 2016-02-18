@@ -25,8 +25,6 @@ void * reverse_monitor(void * args)
 {
     int sockfd = sock_prepare(configuration.bind, configuration.port);
 
-    int clientfd;
-
     pthread_t clthread[configuration.rmaxthreads];
 
     int pclientfd[configuration.rmaxthreads];
@@ -35,15 +33,14 @@ void * reverse_monitor(void * args)
     int x = 0, y = 0;
     while(1)
     {
-        clientfd = sock_accept(sockfd);
-        pclientfd[x] = clientfd;
+        sock_accept(sockfd, &pclientfd[x]);
 
-        pthread_create(&clthread[x], NULL, rworker, (void *) &clientfd);
+        pthread_create(&clthread[x], NULL, rworker, (void *) &pclientfd[x]);
 
         if(++x == configuration.rmaxthreads) {
             for(y = 0; y < configuration.rmaxthreads; y++) {
-                pclientfd[y] = 0;
                 pthread_join(clthread[y], NULL);
+                pclientfd[y] = 0;
             }
             x = y = 0;
         }
@@ -84,13 +81,18 @@ int sock_prepare(const char * ip, int port)
     return sockfd;
 }
 
-int sock_accept(int sockfd)
+int sock_accept(int sockfd, int * pclientfd)
 {
-    int clientsocklen;
+    int clientsocklen, clientfd;
     struct sockaddr_in clientaddr_in;
     clientsocklen = sizeof(struct sockaddr_in);
 
-    int clientfd = accept(sockfd, (struct sockaddr *) &clientaddr_in, (socklen_t *) &clientsocklen);
+    if((clientfd = accept(sockfd, (struct sockaddr *) &clientaddr_in, (socklen_t *) &clientsocklen)) <= 0) {
+        writelog(LOG_CRITICAL, "Accept returned negative FD");
+        exit(255);
+    }
+
+    *pclientfd = clientfd;
 
     return clientfd;
 }
@@ -215,7 +217,6 @@ char ** readfd(int clientfd, char ** input)
 
     while((readb = read(clientfd, buffer, bufferlen)) > 0)
     {
-
         sumb += readb;
 
         *input = (char *) realloc(*input, ++run * bufferlen * sizeof(char));
