@@ -220,8 +220,9 @@ char ** readfd(int clientfd, char ** input)
     while((readb = read(clientfd, buffer, bufferlen)) > 0)
     {
         sumb += readb;
+        run++;
 
-        *input = (char *) realloc(*input, ++run * bufferlen * sizeof(char));
+        *input = (char *) realloc(*input, run * bufferlen * sizeof(char));
         memcpy((*input)+((run-1)*bufferlen), buffer, readb);
 
     };
