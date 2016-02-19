@@ -213,7 +213,7 @@ char * nanotime()
 
 char ** readfd(int clientfd, char ** input)
 {
-    int bufferlen = 10, run = 0;
+    int bufferlen = 512, run = 0;
     ssize_t sumb = 0, readb = 0;
     char buffer[bufferlen];
 

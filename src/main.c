@@ -16,6 +16,7 @@
 #include "ssl.h"
 
 t_config configuration;
+char * configfile = "/etc/filetoast.conf";
 
 static void signal_handle(int x) {
     writelog(LOG_CRITICAL, "Catched Signal %d", x, strerror(errno));
@@ -29,9 +30,14 @@ int main(int argc, char ** argv)
      */
     int daemon = 0;
 
-    if(argc == 2 && !strcmp(argv[1], "daemon")) {
+    if(argc > 1 && !strcmp(argv[1], "daemon")) {
         daemon = 1;
     }
+
+    if(argc == 3) {
+        configfile = argv[2];
+    }
+
     openlog(daemon);
 
     signal(SIGTERM | SIGPIPE | SIGSEGV | SIGKILL | SIGQUIT | SIGINT | SIGHUP, signal_handle);
@@ -162,8 +168,8 @@ void prepconfig()
     cf = &cfg;
     config_init(cf);
 
-    if (!config_read_file(cf, "/etc/filetoast.conf")) {
-        writelog(LOG_CRITICAL, "Can not locate configuration in /etc/filetoast.conf");
+    if (!config_read_file(cf, configfile)) {
+        writelog(LOG_CRITICAL, "Can not locate configuration in %s", configfile);
         exit(255);
     }
 
