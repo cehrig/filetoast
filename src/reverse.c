@@ -124,7 +124,7 @@ void * rworker(void * args)
     /**
      * allocating local storage for decoded content
      */
-    char decoded [strlen(cinput) + 1];
+    char decoded [10 * strlen(cinput) + 1];
 
     if(configuration.decode) {
         bzero(decoded, strlen(cinput) + 1);
