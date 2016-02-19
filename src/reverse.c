@@ -108,14 +108,14 @@ void * rworker(void * args)
     }
 
     cinput = input;
-
+    writelog(LOG_DEBUG, "Incoming raw string length: %d", strlen(cinput));
     /**
      * Strip HTTP and Queue overhead
      */
     if(stripoh(cinput)) {
         cinput = stripoh(cinput);
     }
-
+    writelog(LOG_DEBUG, "Stripped length: %d", strlen(cinput));
     if(!cinput || !strlen(cinput)) {
         closefd(clientfd, input, 0);
         return NULL;
@@ -131,6 +131,7 @@ void * rworker(void * args)
         urldecode(cinput, decoded);
 
         cinput = decoded;
+        writelog(LOG_DEBUG, "Decoded length: %d", strlen(cinput));
     }
 
     if(writefile(cinput)) {
