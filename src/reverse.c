@@ -108,14 +108,14 @@ void * rworker(void * args)
     }
 
     cinput = input;
-    writelog(LOG_DEBUG, "Incoming raw string length: %d", strlen(cinput));
+
     /**
      * Strip HTTP and Queue overhead
      */
     if(stripoh(cinput)) {
         cinput = stripoh(cinput);
     }
-    writelog(LOG_DEBUG, "Stripped length: %d", strlen(cinput));
+
     if(!cinput || !strlen(cinput)) {
         closefd(clientfd, input, 0);
         return NULL;
@@ -131,7 +131,6 @@ void * rworker(void * args)
         urldecode(cinput, decoded);
 
         cinput = decoded;
-        writelog(LOG_DEBUG, "Decoded length: %d", strlen(cinput));
     }
 
     if(writefile(cinput)) {
@@ -153,6 +152,8 @@ int writefile(char * input)
 {
     char * fullpath = createpath();
 
+    writelog(LOG_DEBUG, "Creating file for incoming data: %s (strlen: %d)", fullpath, strlen(input));
+
     FILE * fp;
     fp = fopen(fullpath, "w+");
     fputs(input, fp);
@@ -169,8 +170,6 @@ char * createpath()
     do {
         fullpath = getfullpath();
     } while(!access(fullpath, F_OK));
-
-    writelog(LOG_DEBUG, "Creating file for incoming data: %s", fullpath);
 
     return fullpath;
 }
