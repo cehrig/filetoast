@@ -224,9 +224,6 @@ char ** readfd(int clientfd, char ** input)
         *input = (char *) realloc(*input, ++run * bufferlen * sizeof(char));
         memcpy((*input)+((run-1)*bufferlen), buffer, readb);
 
-        if(readb < bufferlen) {
-            break;
-        }
     };
 
     *input = (char *) realloc(*input, sumb * sizeof(char) +1);
