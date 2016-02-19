@@ -124,7 +124,7 @@ void * rworker(void * args)
     /**
      * allocating local storage for decoded content
      */
-    char decoded [strlen(cinput) + 1];
+    char * decoded = (char *) malloc((strlen(cinput) + 1) * sizeof(char));
 
     if(configuration.decode) {
         bzero(decoded, strlen(cinput) + 1);
@@ -134,6 +134,7 @@ void * rworker(void * args)
     }
 
     if(writefile(cinput)) {
+        free(decoded);
         closefd(clientfd, input, 0);
         return NULL;
     }
@@ -142,6 +143,7 @@ void * rworker(void * args)
      * closing the descriptor
      */
     closefd(clientfd, input, 1);
+    free(decoded);
 
     return NULL;
 }
