@@ -127,7 +127,7 @@ void * rworker(void * args)
     char decoded [10 * strlen(cinput) + 1];
 
     if(configuration.decode) {
-        bzero(decoded, strlen(cinput) + 1);
+        bzero(decoded, 10 * strlen(cinput) + 1);
         urldecode(cinput, decoded);
 
         cinput = decoded;
