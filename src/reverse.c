@@ -50,7 +50,7 @@ void * reverse_monitor(void * args)
     while(1)
     {
         sock_accept(sockfd, &pclientfd[x]);
-        writelog(LOG_ERROR, "ACCEPTED");
+        writelog(LOG_DEBUG, "ACCEPTED");
         pthread_create(&clthread[x], NULL, rworker, (void *) &pclientfd[x]);
 
         if(++x == configuration.rmaxthreads) {
