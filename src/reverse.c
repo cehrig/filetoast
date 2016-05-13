@@ -7,16 +7,32 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <regex.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 #include "log.h"
 #include "main.h"
 #include "reverse.h"
 
 pthread_t reverse_thread;
 pthread_mutex_t lock;
+regex_t * mode = NULL, * length = NULL;
 
+/*
+ * Setting up the network socket and compiling regular expression
+ */
 void reverse()
 {
+    mode = malloc(sizeof(regex_t));
+    if(regcomp(mode, "^POST", 0)) {
+        writelog(LOG_ERROR, "Could not compile regular expression.");
+    }
+
+    length = malloc(sizeof(regex_t));
+    if (regcomp(length, ".*Content-Length: \\([0-9]\\+\\).*", 0)) {
+        writelog(LOG_ERROR, "Could not compile regular expression.");
+    }
+
     pthread_mutex_init(&lock, NULL);
     pthread_create(&reverse_thread, NULL, reverse_monitor, (void *) NULL);
 }
@@ -34,7 +50,7 @@ void * reverse_monitor(void * args)
     while(1)
     {
         sock_accept(sockfd, &pclientfd[x]);
-
+        writelog(LOG_ERROR, "ACCEPTED");
         pthread_create(&clthread[x], NULL, rworker, (void *) &pclientfd[x]);
 
         if(++x == configuration.rmaxthreads) {
@@ -100,50 +116,75 @@ int sock_accept(int sockfd, int * pclientfd)
 void * rworker(void * args)
 {
     int clientfd = *((int *) args);
-    char * input = NULL;
-    char * cinput = NULL;
+    char * input = NULL, * cinput = NULL, * winput = NULL;
 
-    if(!readfd(clientfd, &input)) {
+    /**
+     * Check for correct POST request
+     */
+    if(!readfd(clientfd, &input, 0)
+       || regexec(mode, input, 0, NULL, 0)) {
+
         writelog(LOG_ERROR, "Error reading from socket");
+        closefd(clientfd, input, 1);
+        return NULL;
     }
 
-    cinput = input;
+    winput = input;
+
+    long contentLength = getContentLength(input);
+    char * backlog = strstr(input, "\r\n\r\n")+4;
+    int count = 0, z = 0, backlogLength = strlen(backlog);
+    size_t pbytes = contentLength-backlogLength;
+
+    while((pbytes && (ioctl(clientfd, FIONREAD, &count)), count == 0) && z++ < 100000) { }
+
+    if(count) {
+        readfd(clientfd, &cinput, pbytes);
+
+        char * payload = (char *) malloc((strlen(input)+strlen(cinput)+1) * sizeof(char));
+        memset(payload, 0, strlen(input)+strlen(cinput)+1);
+        memcpy(payload, input, strlen(input));
+        memcpy(payload+strlen(input), cinput, strlen(cinput));
+
+        free(cinput);
+        free(input);
+
+        winput = payload;
+    }
 
     /**
      * Strip HTTP and Queue overhead
      */
-    if(stripoh(cinput)) {
-        cinput = stripoh(cinput);
+    if(stripoh(winput)) {
+        winput = stripoh(winput);
     }
 
-    if(!cinput || !strlen(cinput)) {
-        closefd(clientfd, input, 0);
+    if(!winput || !strlen(winput)) {
+        closefd(clientfd, winput, 0);
         return NULL;
     }
 
     /**
      * allocating local storage for decoded content
      */
-    char * decoded = (char *) malloc((strlen(cinput) + 1) * sizeof(char));
+    char * decoded = (char *) malloc((strlen(winput) + 1) * sizeof(char));
 
     if(configuration.decode) {
-        bzero(decoded, strlen(cinput) + 1);
-        urldecode(cinput, decoded);
+        bzero(decoded, strlen(winput) + 1);
+        urldecode(winput, decoded);
 
-        cinput = decoded;
+        winput = decoded;
     }
 
-    if(writefile(cinput)) {
-        free(decoded);
-        closefd(clientfd, input, 0);
+    if(writefile(winput)) {
+        closefd(clientfd, winput, 0);
         return NULL;
     }
 
     /**
      * closing the descriptor
      */
-    closefd(clientfd, input, 1);
-    free(decoded);
+    closefd(clientfd, winput, 1);
 
     return NULL;
 }
@@ -211,26 +252,47 @@ char * nanotime()
     return out;
 }
 
-char ** readfd(int clientfd, char ** input)
+char ** readfd(int clientfd, char ** input, int len)
 {
-    int bufferlen = 512, run = 0;
-    ssize_t sumb = 0, readb = 0;
-    char buffer[bufferlen];
+    size_t bytes = 0, bufSize = 200;
+    ssize_t ibytes = 0;
+    char * buf = NULL;
+    int x = 0;
 
-    while((readb = read(clientfd, buffer, bufferlen)) > 0)
-    {
-        sumb += readb;
+    do {
 
-        *input = (char *) realloc(*input, ++run * bufferlen * sizeof(char));
-        memcpy((*input)+((run-1)*bufferlen), buffer, readb);
+        buf = (char *) malloc(bufSize * sizeof(char));
+        if(buf == NULL) {
+            writelog(LOG_ERROR, "Error allocating memory for socket read buffer (size: %d)", bufSize);
+        }
+        memset(buf, 0, bufSize);
+        writelog(LOG_ERROR, "start read...");
+        ibytes = read(clientfd, buf, bufSize);
+        writelog(LOG_ERROR, "read... %d", ibytes);
 
-        if(readb < bufferlen) {
+        if(ibytes < 1) {
+            free(buf);
             break;
         }
-    };
 
-    *input = (char *) realloc(*input, sumb * sizeof(char) +1);
-    memset((*input) + sumb, 0, 1);
+        *input = (char *) realloc(*input, (bytes+ibytes) * sizeof(char));
+        memcpy((*input)+bytes, buf, ibytes);
+
+        bytes += ibytes;
+        free(buf);
+
+        if(len > 0 && bytes >= len) {
+            break;
+        }
+
+    } while(ibytes > 0 && !strchrl(*input, bytes));
+
+    char * cinput = malloc(bytes*sizeof(char)+1);
+    memset(cinput, 0, bytes*sizeof(char)+1);
+    memcpy(cinput, *input, bytes);
+
+    free(*input);
+    *input = cinput;
 
     return input;
 }
@@ -239,8 +301,8 @@ char * stripoh(char * input)
 {
     char * begin = NULL;
 
-    if((begin = strstr(input, "&P_DATA=")) != NULL) {
-        return begin+8;
+    if((begin = strstr(input, "P_DATA=")) != NULL) {
+        return begin+7;
     }
 
     return NULL;
@@ -287,4 +349,40 @@ void closefd(int clientfd, char * input, int success)
     }
 
     close(clientfd);
+}
+
+int strchrl(char * string, size_t length)
+{
+    int httpend = 0;
+
+    int x;
+    for(x = 0; x < length; x++) {
+        if(*(string+x) == 13 || *(string+x) == 10) {
+            if(++httpend == 4) {
+                return 1;
+            }
+        } else {
+            httpend = 0;
+        }
+    }
+
+    return 0;
+}
+
+long getContentLength(char * buf)
+{
+    int reti;
+    long contentLength = 0;
+    size_t nmatch = 2;
+    regmatch_t pmatch[2];
+    char * endptr;
+
+    reti = regexec(length, buf, nmatch, pmatch, 0);
+    if(reti == REG_NOMATCH) {
+        return 0;
+    }
+
+    contentLength = strtol(buf+(pmatch[1].rm_so), &endptr, 10);
+
+    return contentLength;
 }

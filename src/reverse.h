@@ -13,7 +13,7 @@ int sock_prepare(const char *, int);
 int sock_accept(int, int *);
 
 void * rworker(void *);
-char ** readfd(int, char **);
+char ** readfd(int, char **, int);
 char * createpath();
 int writefile(char *);
 char * getfullpath();
@@ -21,6 +21,8 @@ char * nanotime();
 int ishex(int);
 int urldecode(const char *, char *);
 char * stripoh(char *);
+int strchrl(char *, size_t);
+long getContentLength(char *);
 void closefd(int, char *, int);
 
 #endif //FILETOAST_REVERSE_H
