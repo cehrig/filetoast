@@ -266,9 +266,7 @@ char ** readfd(int clientfd, char ** input, int len)
             writelog(LOG_ERROR, "Error allocating memory for socket read buffer (size: %d)", bufSize);
         }
         memset(buf, 0, bufSize);
-        writelog(LOG_ERROR, "start read...");
         ibytes = read(clientfd, buf, bufSize);
-        writelog(LOG_ERROR, "read... %d", ibytes);
 
         if(ibytes < 1) {
             free(buf);
