@@ -148,7 +148,7 @@ void * rworker(void * args)
     int count = 0, z = 0, backlogLength = strlen(backlog);
     size_t pbytes = contentLength-backlogLength;
 
-    while((pbytes && (ioctl(clientfd, FIONREAD, &count)), count == 0) && z++ < 100000) { }
+    while((pbytes && ((ioctl(clientfd, FIONREAD, &count)), count == 0))) { }
 
     if(count) {
         readfd(clientfd, &cinput, pbytes);
@@ -164,11 +164,13 @@ void * rworker(void * args)
         winput = payload;
     }
 
+    char * plt = NULL;
+
     /**
      * Strip HTTP and Queue overhead
      */
-    if(stripoh(winput)) {
-        winput = stripoh(winput);
+    if((plt = stripoh(winput)) != NULL) {
+        winput = plt;
     }
 
     if(!winput || !strlen(winput)) {
@@ -179,24 +181,29 @@ void * rworker(void * args)
     /**
      * allocating local storage for decoded content
      */
-    char * decoded = (char *) malloc((strlen(winput) + 1) * sizeof(char));
+    char * decoded = NULL;
 
     if(configuration.decode) {
+        decoded = (char *) malloc((strlen(winput) + 1) * sizeof(char));
+
         bzero(decoded, strlen(winput) + 1);
         urldecode(winput, decoded);
+
+        free(winput);
 
         winput = decoded;
     }
 
+    int err = 1;
+
     if(writefile(winput)) {
-        closefd(clientfd, winput, 0);
-        return NULL;
+        err = 0;
     }
 
     /**
      * closing the descriptor
      */
-    closefd(clientfd, winput, 1);
+    closefd(clientfd, winput, err);
 
     return NULL;
 }
@@ -266,7 +273,7 @@ char * nanotime()
 
 char ** readfd(int clientfd, char ** input, int len)
 {
-    size_t bytes = 0, bufSize = 200;
+    size_t bytes = 0, bufSize = 7;
     ssize_t ibytes = 0;
     char * buf = NULL;
     int x = 0;
@@ -312,7 +319,16 @@ char * stripoh(char * input)
     char * begin = NULL;
 
     if((begin = strstr(input, "P_DATA=")) != NULL) {
-        return begin+7;
+
+        int strlength = strlen(begin)-6;
+
+        char * payload = (char *) malloc(strlength * sizeof(char));
+        memset(payload, 0, strlength);
+        memcpy(payload, begin+7, strlength);
+
+        free(input);
+
+        return payload;
     }
 
     return NULL;
