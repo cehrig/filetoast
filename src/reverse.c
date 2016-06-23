@@ -108,6 +108,18 @@ int sock_accept(int sockfd, int * pclientfd)
         exit(255);
     }
 
+    struct timeval timeout;
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+
+    if (setsockopt (clientfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+                    sizeof(timeout)) < 0)
+        writelog(LOG_ERROR, "setsockopt failed");
+
+    if (setsockopt (clientfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+                    sizeof(timeout)) < 0)
+        writelog(LOG_ERROR, "setsockopt failed");
+
     *pclientfd = clientfd;
 
     return clientfd;

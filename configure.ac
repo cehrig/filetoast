@@ -17,7 +17,7 @@ AC_PROG_MKDIR_P
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lconfig':
-AC_CHECK_LIB([config], [main])
+AC_CHECK_LIB([config], [config_lookup_int])
 # FIXME: Replace `main' with a function in `-lcrypto':
 AC_CHECK_LIB([crypto], [main])
 # FIXME: Replace `main' with a function in `-lcurl':
