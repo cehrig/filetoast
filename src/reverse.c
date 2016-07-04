@@ -273,7 +273,7 @@ char * nanotime()
 
 char ** readfd(int clientfd, char ** input, int len)
 {
-    size_t bytes = 0, bufSize = 7;
+    size_t bytes = 0, bufSize = 200;
     ssize_t ibytes = 0;
     char * buf = NULL;
     int x = 0;
